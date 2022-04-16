@@ -139,13 +139,18 @@ function Home() {
       isClosable: true,
     });
   }
+
+  const resetForm = () => {
+    setPlaces([]);
+    setPageToken(null);
+  };
+
   useEffect(() => {
     getLocation();
   }, []);
 
   useEffect(() => {
-    setPlaces([]);
-    setPageToken(null);
+    resetForm();
   }, [type]);
 
   return (
@@ -167,18 +172,24 @@ function Home() {
       >
         <Box marginBottom={5}>
           <ButtonGroup marginBottom={5}>
-            <Button
-              onClick={() =>
-                getPlaces({
-                  location,
-                  radius: 2000,
-                  type: type.value,
-                })
-              }
-              isLoading={loading}
-            >
-              Find Restaurants
-            </Button>
+            {!places.length ? (
+              <Button
+                onClick={() =>
+                  getPlaces({
+                    location,
+                    radius: 2000,
+                    type: type.value,
+                  })
+                }
+                isLoading={loading}
+              >
+                Find Restaurants
+              </Button>
+            ) : (
+              <Button onClick={resetForm} isLoading={loading}>
+                Clear
+              </Button>
+            )}
           </ButtonGroup>
           <Text>Type</Text>
           <Select
@@ -222,7 +233,7 @@ function Home() {
               </Text>
 
               <Link
-                href={`https://www.google.com/maps/place/?q=place_id:${place.place_id}`}
+                href={`https://www.google.com/maps/search/?api=1&query=${place?.geometry?.location?.lat},${place?.geometry?.location?.lng}&query_place_id=${place.place_id}`}
                 isExternal
               >
                 Map <ExternalLinkIcon mx="2px" />
