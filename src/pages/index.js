@@ -1,3 +1,4 @@
+import { ExternalLinkIcon } from "@chakra-ui/icons";
 import {
   Badge,
   Box,
@@ -5,6 +6,7 @@ import {
   ButtonGroup,
   Flex,
   Image,
+  Link,
   Text,
   useToast,
 } from "@chakra-ui/react";
@@ -14,35 +16,57 @@ import { MdStar } from "react-icons/md";
 import Select from "react-select";
 import { NavBar } from "src/components/NavBar";
 import { PlacesGrid } from "src/components/PlacesGrid";
-
 const typeOptions = [
   { value: "restaurant", label: "Restaurants" },
   { value: "bar", label: "Bars" },
   { value: "cafe", label: "Cafes" },
 ];
+
+const ratingOptions = [
+  { value: 4.5, label: 4.5 },
+  { value: 4.6, label: 4.6 },
+  { value: 4.7, label: 4.7 },
+  { value: 4.8, label: 4.8 },
+  { value: 4.9, label: 4.9 },
+  { value: 5, label: 5 },
+];
+
 export default function Home() {
   const toast = useToast();
 
   const [places, setPlaces] = useState([]);
   const [location, setLocation] = useState();
   const [type, setType] = useState(typeOptions[0]);
+  const [rating, setRating] = useState(ratingOptions[0]);
   const [pageToken, setPageToken] = useState();
-
+  const [loading, setLoading] = useState();
   const getPhoto = async ({ photo_reference }) => {
-    const { data } = await axios.get(`/api/photos`, {
-      params: { photo_reference },
-    });
-    return data.url;
+    try {
+      const { data } = await axios.get(`/api/photos`, {
+        params: { photo_reference },
+      });
+      return data.url;
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error!",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const getPlaces = async (params) => {
     try {
+      setLoading(true);
       const { data } = await axios.get("/api/places", {
         params,
       });
 
       const highRatedPlaces = data.results.filter(
-        (place) => place.rating > 4.5
+        (place) => place.rating >= rating.value
       );
       const decoratedPlaces = [];
 
@@ -54,11 +78,29 @@ export default function Home() {
           : null;
         decoratedPlaces.push({ ...place, photo_url });
       }
+      !decoratedPlaces.length &&
+        data.next_page_token &&
+        toast({
+          title: "Error!",
+          description: "No good quality places found. Try the next page",
+          duration: 3000,
+          isClosable: true,
+        });
 
       setPlaces([...places, ...decoratedPlaces]);
       setPageToken(data.next_page_token);
     } catch (error) {
       console.error(error);
+
+      toast({
+        title: "Error!",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -128,18 +170,26 @@ export default function Home() {
               onClick={() =>
                 getPlaces({
                   location,
-                  radius: 1500,
+                  radius: 2000,
                   type: type.value,
                 })
               }
+              isLoading={loading}
             >
               Find Restaurants
             </Button>
           </ButtonGroup>
+          <Text>Type</Text>
           <Select
             options={typeOptions}
             onChange={setType}
             defaultValue={type}
+          />
+          <Text>Minimum Rating</Text>
+          <Select
+            options={ratingOptions}
+            onChange={setRating}
+            defaultValue={rating}
           />
         </Box>
 
@@ -169,6 +219,13 @@ export default function Home() {
               >
                 {place.name}
               </Text>
+
+              <Link
+                href={`https://www.google.com/maps/place/?q=place_id:${place.place_id}`}
+                isExternal
+              >
+                Map <ExternalLinkIcon mx="2px" />
+              </Link>
               <Text mt={2}>{"£".repeat(place.price_level)}</Text>
               <Flex mt={2} align="center">
                 <Box as={MdStar} color="orange.400" />
@@ -181,7 +238,10 @@ export default function Home() {
         </PlacesGrid>
         {pageToken && (
           <ButtonGroup marginTop={5}>
-            <Button onClick={() => getPlaces({ pagetoken: pageToken })}>
+            <Button
+              onClick={() => getPlaces({ pagetoken: pageToken })}
+              isLoading={loading}
+            >
               Next Page
             </Button>
           </ButtonGroup>
