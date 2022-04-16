@@ -16,6 +16,7 @@ import { MdStar } from "react-icons/md";
 import Select from "react-select";
 import { NavBar } from "src/components/NavBar";
 import { PlacesGrid } from "src/components/PlacesGrid";
+import ProtectRoute from "src/components/ProtectRoute";
 const typeOptions = [
   { value: "restaurant", label: "Restaurants" },
   { value: "bar", label: "Bars" },
@@ -31,7 +32,7 @@ const ratingOptions = [
   { value: 5, label: 5 },
 ];
 
-export default function Home() {
+function Home() {
   const toast = useToast();
 
   const [places, setPlaces] = useState([]);
@@ -250,3 +251,5 @@ export default function Home() {
     </>
   );
 }
+
+export default ProtectRoute(Home);
